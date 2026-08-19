@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FocusGuard - Attention Span Protector</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a10;--surface:#121218;--card:#1a1a24;--card2:#1e1e2e;
+  --border:#2a2a3a;--text:#fff;--text2:rgba(255,255,255,.55);--text3:rgba(255,255,255,.3);
+  --green:#4CAF50;--red:#F44336;--orange:#FF9800;--blue:#2196F3;--purple:#9C27B0;--yellow:#FFEB3B;
+  --shortform:#FF1744;--messaging:#00BCD4;--scrolling:#FF9800;
+  --radius:12px;--radius-sm:8px;
+}
+html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+button{cursor:pointer;border:none;outline:none;font-family:inherit}
+input[type=range]{-webkit-appearance:none;background:transparent;cursor:pointer;width:80px}
+input[type=range]::-webkit-slider-track{height:6px;border-radius:3px;background:var(--border)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--green);margin-top:-6px}
+
+/* ===== SPLASH ===== */
+.splash{position:fixed;inset:0;z-index:5000;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s,visibility .6s}
+.splash.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.splash-icon{font-size:80px;margin-bottom:20px;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.splash h1{font-size:42px;font-weight:800;background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.splash p{font-size:16px;color:var(--text2);margin-bottom:40px;text-align:center;max-width:400px;line-height:1.5}
+.splash-btns{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.splash-btn{padding:16px 40px;border-radius:var(--radius);font-size:16px;font-weight:700;transition:transform .15s,box-shadow .3s}
+.splash-btn:hover{transform:scale(1.04)}
+.splash-btn:active{transform:scale(.97)}
+.splash-btn.primary{background:var(--green);color:#fff;box-shadow:0 4px 20px rgba(76,175,80,.3)}
+.splash-btn.secondary{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+.splash-hint{margin-top:32px;font-size:12px;color:var(--text3)}
+
+/* ===== MAIN APP ===== */
+.app{display:flex;height:100vh;position:relative}
+.panel{height:100vh;overflow-y:auto;padding:16px}
+.panel::-webkit-scrollbar{width:4px}
+.panel::-webkit-scrollbar-track{background:transparent}
+.panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.left-panel{width:320px;min-width:320px;background:var(--surface);border-right:1px solid var(--border)}
+.center-panel{flex:1;background:var(--bg);display:flex;flex-direction:column}
+.right-panel{width:300px;min-width:300px;background:var(--surface);border-left:1px solid var(--border)}
+.header{padding:0 16px 16px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.header h1{font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{font-size:12px;color:var(--text2);margin-top:4px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card-title{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:600;margin-bottom:12px}
+.stat-row{display:flex;gap:8px;margin-bottom:8px}
+.stat-box{flex:1;background:var(--card2);border-radius:var(--radius-sm);padding:12px;text-align:center}
+.stat-box .value{font-size:20px;font-weight:700;line-height:1.2}
+.stat-box .label{font-size:10px;color:var(--text2);margin-top:4px}
+.progress-wrap{margin:8px 0}
+.progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px}
+.progress-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width 1s linear,background .3s}
+.chips{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.chip{padding:4px 10px;border-radius:20px;font-size:11px;display:flex;align-items:center;gap:5px;border:1px solid transparent;transition:all .3s}
+.chip .dot{width:6px;height:6px;border-radius:50%}
+.chip.active{border-color:currentColor}
+.status-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--card);border-radius:var(--radius-sm);margin-bottom:12px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);transition:all .3s}
+.status-dot.active{background:var(--green);box-shadow:0 0 8px var(--green)}
+.status-text{font-size:11px;color:var(--text2)}
+.current-activity{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.current-activity .pulse{width:14px;height:14px;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.current-activity .activity-label{font-size:16px;font-weight:700}
+.timer-display{font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;text-align:center;padding:12px 0;font-family:'Courier New',monospace}
+.session-log{max-height:200px;overflow-y:auto}
+.session-log::-webkit-scrollbar{width:3px}
+.session-log::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.log-entry{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px}
+.log-entry:last-child{border:none}
+.log-entry .log-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.log-entry .log-time{color:var(--text3);min-width:45px}
+.setting-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.setting-item:last-child{border:none}
+.setting-item .setting-label{font-size:13px;font-weight:500}
+.setting-item .setting-desc{font-size:10px;color:var(--text2);margin-top:2px}
+.setting-item .setting-value{font-size:13px;font-weight:700;color:var(--green);min-width:50px;text-align:right;display:flex;align-items:center;gap:6px}
+.toggle{position:relative;width:40px;height:22px;background:var(--border);border-radius:11px;cursor:pointer;transition:background .3s;flex-shrink:0}
+.toggle.on{background:var(--green)}
+.toggle::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform .3s}
+.toggle.on::after{transform:translateX(18px)}
+
+/* ===== SOCIAL MEDIA ===== */
+.sm-tabs{display:flex;gap:0;background:var(--card);border-radius:var(--radius);overflow:hidden;margin-bottom:0}
+.sm-tab{flex:1;padding:10px 8px;text-align:center;font-size:12px;font-weight:600;color:var(--text3);background:transparent;transition:all .2s;border:none}
+.sm-tab.active{color:var(--text);background:var(--card2)}
+.mock-app{flex:1;overflow:hidden;display:flex;flex-direction:column;background:var(--card);border-radius:var(--radius);margin:0 12px 12px}
+.mock-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.mock-header h3{font-size:16px;font-weight:700}
+.mock-content{flex:1;overflow-y:auto;padding:12px}
+.mock-content::-webkit-scrollbar{width:3px}
+.mock-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.feed-card{background:var(--card2);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;cursor:pointer;transition:transform .15s}
+.feed-card:active{transform:scale(.98)}
+.feed-card .img-placeholder{height:140px;display:flex;align-items:center;justify-content:center;font-size:40px;position:relative}
+.feed-card .img-placeholder .tag{position:absolute;top:8px;left:8px;font-size:9px;padding:3px 8px;border-radius:6px;font-weight:700;background:rgba(0,0,0,.6);color:#fff}
+.feed-card .info{padding:10px 12px}
+.feed-card .info .title{font-size:13px;font-weight:600}
+.feed-card .info .sub{font-size:11px;color:var(--text2);margin-top:2px}
+.reel-view{display:flex;flex-direction:column;height:100%}
+.reel-item{width:100%;max-width:340px;aspect-ratio:9/16;border-radius:var(--radius);overflow:hidden;position:relative;margin:0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .3s}
+.reel-item .overlay{position:absolute;bottom:0;left:0;right:0;padding:16px;background:linear-gradient(transparent,rgba(0,0,0,.8))}
+.reel-item .overlay .title{font-size:14px;font-weight:600}
+.reel-item .overlay .desc{font-size:11px;color:var(--text2);margin-top:4px}
+.reel-item .reel-actions{position:absolute;right:12px;bottom:80px;display:flex;flex-direction:column;gap:16px;align-items:center}
+.reel-item .reel-actions .action{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--text2)}
+.reel-nav{display:flex;justify-content:center;gap:8px;padding:8px}
+.reel-nav button{background:var(--card2);color:var(--text2);border:none;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600}
+.reel-nav button.active{background:var(--shortform);color:#fff}
+.chat-list{display:flex;flex-direction:column;gap:8px}
+.chat-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);cursor:pointer;transition:background .15s}
+.chat-item:active{background:var(--card2)}
+.chat-item .avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
+.chat-item .chat-info{flex:1;min-width:0}
+.chat-item .chat-info .name{font-size:13px;font-weight:600}
+.chat-item .chat-info .preview{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-item .chat-time{font-size:10px;color:var(--text3);flex-shrink:0}
+.chat-input{display:flex;gap:8px;padding:12px;background:var(--card2);border-radius:var(--radius);margin-top:8px}
+.chat-input input{flex:1;background:var(--border);border:none;border-radius:20px;padding:10px 14px;color:var(--text);font-size:13px;outline:none}
+.chat-input button{background:var(--blue);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600}
+
+/* ===== DETECTION PANEL ===== */
+.chart-bar{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.chart-bar .bar-label{width:80px;font-size:11px;color:var(--text2);text-align:right}
+.chart-bar .bar-track{flex:1;height:18px;background:var(--border);border-radius:4px;overflow:hidden}
+.chart-bar .bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
+.chart-bar .bar-value{font-size:11px;color:var(--text2);min-width:40px}
+
+/* ===== LIVE BADGE ===== */
+.live-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(244,67,54,.15);color:var(--red);font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+.live-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse 1.5s infinite}
+
+/* ===== OVERLAYS ===== */
+.overlay-screen{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay-screen.show{opacity:1;pointer-events:all}
+.overlay-screen.warning-bg{background:rgba(0,0,0,.92)}
+.overlay-screen.block-bg{background:rgba(20,0,0,.95)}
+.overlay-box{text-align:center;max-width:400px;padding:40px}
+.overlay-box .icon{font-size:72px;margin-bottom:16px}
+.overlay-box h2{font-size:28px;font-weight:700;margin-bottom:8px}
+.overlay-box p{font-size:16px;color:var(--text2);line-height:1.6;margin-bottom:8px}
+.overlay-box .stats-line{font-size:13px;color:var(--text3);margin-bottom:24px}
+.overlay-box button{padding:14px 36px;border-radius:var(--radius);font-size:16px;font-weight:700;border:none;transition:transform .15s}
+.overlay-box button:hover{transform:scale(1.03)}
+.overlay-box button:active{transform:scale(.97)}
+.overlay-box .dismiss-btn{background:var(--green);color:#fff}
+.overlay-box .block-dismiss{background:var(--red);color:#fff}
+.overlay-timer{width:100%;height:4px;background:var(--border);border-radius:2px;margin-top:20px;overflow:hidden}
+.overlay-timer-fill{height:100%;border-radius:2px;transition:width .5s linear}
+
+/* ===== TOAST ===== */
+.toast{position:fixed;top:16px;right:16px;z-index:2000;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:10px;transform:translateX(120%);transition:transform .3s;max-width:320px}
+.toast.show{transform:translateX(0)}
+.toast .toast-icon{font-size:20px}
+.toast .toast-text{font-size:12px}
+.toast .toast-text strong{display:block;font-size:13px;margin-bottom:2px}
+
+/* ===== DEMO BANNER ===== */
+.demo-banner{background:linear-gradient(90deg,rgba(33,150,243,.15),rgba(156,39,176,.15));border:1px solid rgba(33,150,243,.3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.demo-banner .demo-icon{font-size:20px}
+.demo-banner .demo-text{flex:1;font-size:12px;color:var(--text2)}
+.demo-banner .demo-text strong{color:var(--blue)}
+.demo-banner button{background:var(--blue);color:#fff;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600}
+
+/* ===== MOBILE ===== */
+.main-panel{display:flex;flex-direction:column;height:100%}
+.main-panel>.sm-tabs{margin:12px 12px 0;flex-shrink:0}
+.main-panel>.mock-app{flex:1;margin-bottom:0}
+.mobile-tabs{display:none;background:var(--surface);border-top:1px solid var(--border);padding:6px 0}
+.mobile-tabs .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;color:var(--text3);font-size:10px;padding:6px 0;font-family:inherit}
+.mobile-tabs .tab.active{color:var(--green)}
+.mobile-tabs .tab svg{width:20px;height:20px}
+.mobile-view{display:none}
+.mobile-view.active{display:flex;flex-direction:column;height:100%}
+
+@media(max-width:900px){
+  .app{flex-direction:column}
+  .left-panel,.right-panel{display:none;width:100%;min-width:0;height:auto;max-height:60vh;border:none}
+  .mobile-tabs{display:flex}
+  .center-panel{flex:1;min-height:0}
+  .mobile-view.active{display:flex}
+  .mobile-view.active .left-panel,.mobile-view.active .right-panel{display:block;height:auto;max-height:none;overflow-y:auto}
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .3s ease-out}
+</style>
+</head>
+<body>
+
+<!-- SPLASH SCREEN -->
+<div class="splash" id="splash">
+  <div class="splash-icon">🛡️</div>
+  <h1>FocusGuard</h1>
+  <p>Protect your attention span from short-form content addiction. Track, warn, and block reels, shorts, and TikToks before they consume your focus.</p>
+  <div class="splash-btns">
+    <button class="splash-btn primary" onclick="startDemoMode()">▶ Run Auto Demo</button>
+    <button class="splash-btn secondary" onclick="startExploreMode()">🔍 Explore Freely</button>
+  </div>
+  <div class="splash-hint">For contest presentation — no phone or emulator needed</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span class="toast-icon" id="toastIcon"></span><div class="toast-text" id="toastText"></div></div>
+
+<!-- WARNING OVERLAY -->
+<div class="overlay-screen warning-bg" id="warningOverlay">
+  <div class="overlay-box">
+    <div class="icon">⚠️</div>
+    <h2 style="color:var(--yellow)">Time Check!</h2>
+    <p>You've been watching short-form content for <strong id="warningDuration"></strong>.</p>
+    <p>Your attention span matters. Take a break, or switch to messaging someone instead.</p>
+    <div class="stats-line">FocusGuard is protecting your focus</div>
+    <button class="dismiss-btn" onclick="dismissWarning()">I'll take a break</button>
+    <div class="overlay-timer"><div class="overlay-timer-fill" id="warningTimerFill" style="background:var(--yellow);width:100%"></div></div>
+  </div>
+</div>
+
+<!-- BLOCK OVERLAY -->
+<div class="overlay-screen block-bg" id="blockOverlay">
+  <div class="overlay-box">
+    <div class="icon">🛑</div>
+    <h2 style="color:var(--red)">SHORT-FORM CONTENT BLOCKED</h2>
+    <p>You've spent <strong id="blockDuration"></strong> consuming short-form content.</p>
+    <p>This session has been blocked to protect your attention span.</p>
+    <div class="stats-line" id="blockStats"></div>
+    <button class="block-dismiss" onclick="dismissBlock()">Got it — I'll do something else</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="mainApp" style="display:none">
+
+  <!-- LEFT PANEL -->
+  <div class="panel left-panel" id="leftPanel">
+    <div class="header">
+      <h1>FocusGuard</h1>
+      <p>Protect your attention span</p>
+    </div>
+    <div class="demo-banner" id="demoBanner" style="display:none">
+      <span class="demo-icon">🎬</span>
+      <div class="demo-text"><strong>Auto Demo Running</strong> — Watch the flow or take manual control</div>
+      <button onclick="stopDemoMode()">Stop</button>
+    </div>
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-text" id="statusText">Not tracking</span>
+      <div style="flex:1"></div>
+      <button style="background:var(--green);color:#fff;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600" id="trackingBtn" onclick="toggleTracking()">Start</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Current Activity</div>
+      <div class="current-activity">
+        <div class="pulse" id="activityDot" style="background:var(--text3)"></div>
+        <span class="activity-label" id="activityLabel">No activity</span>
+      </div>
+      <div id="activityApp" style="font-size:12px;color:var(--text3);margin-bottom:8px"></div>
+      <div class="chips">
+        <div class="chip" id="chipShortform" style="color:var(--shortform)"><span class="dot" style="background:var(--shortform)"></span>Reels</div>
+        <div class="chip" id="chipMessaging" style="color:var(--messaging)"><span class="dot" style="background:var(--messaging)"></span>Messaging</div>
+        <div class="chip" id="chipScrolling" style="color:var(--scrolling)"><span class="dot" style="background:var(--scrolling)"></span>Feed</div>
+      </div>
+    </div>
+    <div class="card" id="sessionCard" style="display:none">
+      <div class="card-title">Short-Form Session Active</div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Progress to block</span><span id="sessionProgress">0s / 60s</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="sessionFill" style="width:0;background:var(--shortform)"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Warning at</span><span id="warningAt">--</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="warningFill" style="width:0;background:var(--orange)"></div></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="value" style="color:var(--shortform)" id="statShortform">0s</div><div class="label">Short-Form</div></div>
+      <div class="stat-box"><div class="value" style="color:var(--messaging)" id="statMessaging">0s</div><div class="label">Messaging</div></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="value" style="color:var(--scrolling)" id="statScrolling">0s</div><div class="label">Scrolling</div></div>
+      <div class="stat-box"><div class="value" style="color:var(--purple)" id="statWarnings">0</div><div class="label">Warnings</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Log</div>
+      <div class="session-log" id="activityLog">
+        <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Start tracking to see activity</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Quick Settings</div>
+      <div class="setting-item">
+        <div><div class="setting-label">Warning at</div><div class="setting-desc">Time before warning</div></div>
+        <div class="setting-value"><input type="range" min="5" max="120" value="30" id="warnSlider" oninput="updateThresholds()"><span id="warnVal">30s</span></div>
+      </div>
+      <div class="setting-item">
+        <div><div class="setting-label">Block at</div><div class="setting-desc">Time before blocking</div></div>
+        <div class="setting-value"><input type="range" min="10" max="300" value="60" id="blockSlider" oninput="updateThresholds()"><span id="blockVal">60s</span></div>
+      </div>
+      <div class="setting-item">
+        <div><div class="setting-label">Blocking</div><div class="setting-desc">Block short-form content</div></div>
+        <div class="toggle on" id="blockingToggle" onclick="toggleBlocking()"></div>
+      </div>
+      <div class="setting-item">
+        <div><div class="setting-label">Warnings</div><div class="setting-desc">Show warning alerts</div></div>
+        <div class="toggle on" id="warningToggle" onclick="toggleWarnings()"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER PANEL -->
+  <div class="main-panel center-panel">
+    <div class="sm-tabs" id="appTabs">
+      <button class="sm-tab active" onclick="switchApp('instagram')" data-app="instagram">📷 Instagram</button>
+      <button class="sm-tab" onclick="switchApp('tiktok')" data-app="tiktok">🎵 TikTok</button>
+      <button class="sm-tab" onclick="switchApp('youtube')" data-app="youtube">▶ YouTube</button>
+    </div>
+    <div class="mock-app" id="mockApp"></div>
+    <div class="mobile-tabs" id="mobileTabs">
+      <button class="tab active" onclick="switchMobileTab('home')" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        Home
+      </button>
+      <button class="tab" onclick="switchMobileTab('social')" data-tab="social">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+        Social
+      </button>
+      <button class="tab" onclick="switchMobileTab('detect')" data-tab="detect">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        Detect
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel right-panel" id="rightPanel">
+    <div class="header">
+      <h1 style="font-size:18px">Activity Detection</h1>
+      <p>Real-time monitoring</p>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span class="live-badge" id="liveBadge" style="display:none">LIVE</span>
+        <span style="font-size:11px;color:var(--text3)" id="detectStatus">Waiting to track...</span>
+      </div>
+      <div style="text-align:center">
+        <div class="timer-display" id="sessionTimer">00:00</div>
+        <div style="text-align:center;color:var(--text2);font-size:12px">Current session duration</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Session Breakdown</div>
+      <div class="chart-bar">
+        <div class="bar-label">Short-Form</div>
+        <div class="bar-track"><div class="bar-fill" id="chartShortform" style="background:var(--shortform);width:0"></div></div>
+        <div class="bar-value" id="chartShortformVal">0s</div>
+      </div>
+      <div class="chart-bar">
+        <div class="bar-label">Messaging</div>
+        <div class="bar-track"><div class="bar-fill" id="chartMessaging" style="background:var(--messaging);width:0"></div></div>
+        <div class="bar-value" id="chartMessagingVal">0s</div>
+      </div>
+      <div class="chart-bar">
+        <div class="bar-label">Scrolling</div>
+        <div class="bar-track"><div class="bar-fill" id="chartScrolling" style="background:var(--scrolling);width:0"></div></div>
+        <div class="bar-value" id="chartScrollingVal">0s</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Detection Confidence</div>
+      <div style="text-align:center">
+        <div style="font-size:32px;font-weight:700" id="confidenceVal">0%</div>
+        <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" id="confidenceBar" style="width:0;background:var(--green)"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Today's Stats</div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="value" id="totalSessions">0</div><div class="label">Sessions</div></div>
+        <div class="stat-box"><div class="value" id="totalBlocked">0</div><div class="label">Blocked</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="value" id="totalShortformTime">0s</div><div class="label">Total Short-Form</div></div>
+        <div class="stat-box"><div class="value" id="totalAllTime">0s</div><div class="label">Total Screen</div></div>
+      </div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,rgba(76,175,80,.1),rgba(33,150,243,.1))">
+      <div class="card-title">Focus Tip</div>
+      <p style="font-size:12px;color:var(--text2);line-height:1.5;transition:opacity .3s" id="tipText">Studies show that switching from short-form to long-form content can help rebuild your attention span within 2-3 weeks.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+const S = {
+  mode: null, // 'demo' | 'explore'
+  tracking: false,
+  currentApp: 'instagram',
+  currentSection: 'feed',
+  currentActivity: 'none',
+  currentAppLabel: '',
+  confidence: 0,
+  shortformTime: 0,
+  messagingTime: 0,
+  scrollingTime: 0,
+  totalScreenTime: 0,
+  sessionCount: 0,
+  blockedCount: 0,
+  warningCount: 0,
+  sessionActive: false,
+  sessionSeconds: 0,
+  warnThreshold: 30,
+  blockThreshold: 60,
+  blockingOn: true,
+  warningsOn: true,
+  lastWarn: 0,
+  lastBlock: 0,
+  tickTimer: null,
+  uiTimer: null,
+  reelTimer: null,
+  demoTimer: null,
+  demoStep: 0,
+  warningAutoTimer: null,
+  mobileTab: 'home'
+};
+
+const tips = [
+  "Studies show that switching from short-form to long-form content can help rebuild your attention span within 2-3 weeks.",
+  "Try the 20-20-20 rule: Every 20 minutes, look at something 20 feet away for 20 seconds.",
+  "The average human attention span has dropped to 8 seconds. You can fix this by practicing sustained focus.",
+  "Messaging someone is better than passive scrolling — it's active, not consumptive.",
+  "Your brain releases more dopamine from short-form content than any other medium — that's what makes it addictive.",
+  "Set specific times to check social media instead of scrolling randomly throughout the day.",
+  "After waking up, wait at least 30 minutes before opening any social media app.",
+  "Try reading a book for 15 minutes after putting down short-form content."
+];
+
+const apps = {
+  instagram: { name:'Instagram', icon:'📷', color:'#E1306C', secs:['feed','reels','messages'], labels:['Feed','Reels','Messages'] },
+  tiktok: { name:'TikTok', icon:'🎵', color:'#010101', secs:['feed','reels','messages'], labels:['For You','LIVE','Inbox'] },
+  youtube: { name:'YouTube', icon:'▶️', color:'#FF0000', secs:['feed','reels','messages'], labels:['Home','Shorts','Community'] }
+};
+
+const fakePosts = [
+  {user:'travel_diaries',img:'🏔️',caption:'Mountain vibes at dawn',type:'photo',color:'#2d5016'},
+  {user:'foodie_life',img:'🍕',caption:'Best pizza in NYC!',type:'photo',color:'#5c2d00'},
+  {user:'fitness_hub',img:'💪',caption:'Morning routine check',type:'video',color:'#1a1a3a'},
+  {user:'art_studio',img:'🎨',caption:'New painting finished',type:'photo',color:'#3a1a2a'},
+  {user:'pet_lovers',img:'🐕',caption:'Who\'s a good boy?',type:'photo',color:'#2a1a00'},
+  {user:'tech_news',img:'💻',caption:'AI is changing everything',type:'article',color:'#0a1a3a'},
+  {user:'nature_shots',img:'🌅',caption:'Golden hour magic',type:'photo',color:'#3a2a00'},
+  {user:'music_daily',img:'🎸',caption:'Live session highlights',type:'video',color:'#1a0a2a'}
+];
+
+const fakeReels = [
+  {user:'comedy_king',desc:'Wait for the end 😂 #funny #viral',likes:'1.2M',color:'#2a0020',icon:'😂'},
+  {user:'dance_queen',desc:'New choreography 💃 #dance #trending',likes:'856K',color:'#0a2020',icon:'💃'},
+  {user:'cooking_pro',desc:'30-second pasta recipe 🍝',likes:'2.1M',color:'#201a00',icon:'🍝'},
+  {user:'life_hacks',desc:'You NEED this hack 🔥',likes:'3.4M',color:'#001a20',icon:'🔥'},
+  {user:'travel_vlogs',desc:'Hidden gems in Bali 🌴',likes:'567K',color:'#1a2000',icon:'🌴'},
+  {user:'satisfying',desc:'Oddly satisfying compilation ✨',likes:'4.2M',color:'#200010',icon:'✨'}
+];
+
+const fakeChats = [
+  {name:'Sarah',avatar:'S',color:'#e91e63',preview:'Hey! Are you free today?',time:'2m'},
+  {name:'Mike',avatar:'M',color:'#2196f3',preview:'Check out this article',time:'15m'},
+  {name:'Work Group',avatar:'W',color:'#ff9800',preview:'Meeting at 3pm tomorrow',time:'1h'},
+  {name:'Alex',avatar:'A',color:'#4caf50',preview:'lol that meme was hilarious',time:'2h'},
+  {name:'Mom',avatar:'M',color:'#9c27b0',preview:'Call me when you can',time:'3h'}
+];
+
+// ===== SPLASH =====
+function startDemoMode() {
+  S.mode = 'demo';
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('mainApp').style.display = 'flex';
+  document.getElementById('demoBanner').style.display = 'flex';
+  S.warnThreshold = 12;
+  S.blockThreshold = 25;
+  document.getElementById('warnSlider').value = 12;
+  document.getElementById('blockSlider').value = 25;
+  updateThresholds();
+  setTimeout(runDemoSequence, 800);
+}
+
+function startExploreMode() {
+  S.mode = 'explore';
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('mainApp').style.display = 'flex';
+  renderMockApp();
+}
+
+// ===== DEMO SEQUENCE =====
+function runDemoSequence() {
+  toggleTracking();
+  const steps = [
+    { delay: 1000, fn: () => { switchApp('tiktok'); addLog('info', 'Opened TikTok'); showToast('📱', 'App Opened', 'TikTok — Feed detected'); }},
+    { delay: 3000, fn: () => { showToast('👁️', 'Activity Detected', 'Scrolling Feed — 85% confidence'); }},
+    { delay: 3000, fn: () => { switchSection('reels'); addLog('info', 'Switched to Reels'); showToast('🎬', 'Short-Form Detected', 'Watching Reels — 92% confidence'); }},
+    { delay: 5000, fn: () => { showToast('⏱️', 'Session Active', 'Short-form timer running...'); }},
+    { delay: 6000, fn: () => {}, waitUntil: () => S.sessionSeconds >= S.warnThreshold },
+    { delay: 1000, fn: () => { addLog('info', 'Switched to Messages'); showToast('💬', 'Switched Activity', 'Messaging detected — session paused'); }},
+    { delay: 4000, fn: () => { switchSection('reels'); addLog('info', 'Back to Reels'); showToast('🎬', 'Short-Form Resumed', 'Watching Reels again'); }},
+    { delay: 8000, fn: () => { addLog('info', 'Switched to Instagram'); showToast('📱', 'App Switch', 'Instagram — Reels detected'); }},
+    { delay: 2000, fn: () => { showToast('📊', 'Stats Update', 'Multiple sessions tracked across apps'); }},
+    { delay: 5000, fn: () => { stopDemoMode(); addLog('info', 'Demo complete'); showToast('✅', 'Demo Complete', 'This is how FocusGuard protects your attention'); }}
+  ];
+
+  S.demoStep = 0;
+  function nextStep() {
+    if (S.demoStep >= steps.length || S.mode !== 'demo') return;
+    const step = steps[S.demoStep++];
+    S.demoTimer = setTimeout(() => {
+      step.fn();
+      if (step.waitUntil) {
+        const waitCheck = setInterval(() => {
+          if (step.waitUntil()) { clearInterval(waitCheck); nextStep(); }
+        }, 200);
+        S.demoWaitCheck = waitCheck;
+      } else {
+        nextStep();
+      }
+    }, step.delay);
+  }
+  nextStep();
+}
+
+function stopDemoMode() {
+  if (S.mode !== 'demo') return;
+  clearTimeout(S.demoTimer);
+  if (S.demoWaitCheck) clearInterval(S.demoWaitCheck);
+  if (S.warningAutoTimer) clearInterval(S.warningAutoTimer);
+  document.getElementById('demoBanner').style.display = 'none';
+}
+
+// ===== MOCK APP RENDER =====
+function renderMockApp() {
+  const app = apps[S.currentApp];
+  const el = document.getElementById('mockApp');
+  const secTabs = app.labels.map((l, i) =>
+    `<button class="sm-tab ${S.currentSection===app.secs[i]?'active':''}" onclick="switchSection('${app.secs[i]}')">${l}</button>`
+  ).join('');
+
+  let content = '';
+  if (S.currentSection === 'feed') {
+    content = renderFeed();
+    setActivity('scrolling', app.name, 85);
+  } else if (S.currentSection === 'reels') {
+    content = renderReels();
+    setActivity('shortform', app.name, 92);
+  } else if (S.currentSection === 'messages') {
+    content = renderMessages();
+    setActivity('messaging', app.name, 88);
+  }
+
+  el.innerHTML = `
+    <div class="mock-header">
+      <h3>${app.icon} ${app.name}</h3>
+      ${S.tracking ? '<span class="live-badge">TRACKING</span>' : ''}
+    </div>
+    <div class="sm-tabs" style="margin:0;border-radius:0;border-bottom:1px solid var(--border)">${secTabs}</div>
+    <div class="mock-content" id="mockContent">${content}</div>
+  `;
+}
+
+function renderFeed() {
+  return fakePosts.map(p => `
+    <div class="feed-card" onmousedown="onFeedTap()">
+      <div class="img-placeholder" style="background:${p.color}">
+        <span>${p.img}</span>
+        <div class="tag">${p.type}</div>
+      </div>
+      <div class="info">
+        <div class="title">${p.user}</div>
+        <div class="sub">${p.caption}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderReels() {
+  const r = fakeReels[Math.floor(Math.random() * fakeReels.length)];
+  return `
+    <div class="reel-view">
+      <div class="reel-item" style="background:linear-gradient(135deg,${r.color},${r.color}cc)" onmousedown="onReelTap()">
+        <span style="font-size:80px">${r.icon}</span>
+        <div class="overlay">
+          <div class="title">@${r.user}</div>
+          <div class="desc">${r.desc}</div>
+        </div>
+        <div class="reel-actions">
+          <div class="action"><span>❤️</span><span>${r.likes}</span></div>
+          <div class="action"><span>💬</span><span>12K</span></div>
+          <div class="action"><span>↗️</span><span>Share</span></div>
+          <div class="action"><span>🎵</span></div>
+        </div>
+      </div>
+      <div class="reel-nav">
+        <button onclick="onReelTap()" class="active">↑ Next</button>
+        <button onclick="onReelTap()">Skip</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderMessages() {
+  return `
+    <div class="chat-list">
+      ${fakeChats.map(c => `
+        <div class="chat-item" onmousedown="onMessageTap()">
+          <div class="avatar" style="background:${c.color}">${c.avatar}</div>
+          <div class="chat-info"><div class="name">${c.name}</div><div class="preview">${c.preview}</div></div>
+          <div class="chat-time">${c.time}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="chat-input" style="margin-top:12px">
+      <input type="text" placeholder="Type a message..." onfocus="onMessageTap()" />
+      <button onmousedown="onMessageTap()">Send</button>
+    </div>
+  `;
+}
+
+// ===== INTERACTION =====
+function setActivity(type, app, conf) {
+  S.currentActivity = type;
+  S.currentAppLabel = app;
+  S.confidence = conf;
+}
+
+function onReelTap() {
+  if (!S.tracking) return;
+  if (!S.sessionActive) startSession();
+  addLog('shortform', 'Watching reel');
+  clearTimeout(S.reelTimer);
+  S.reelTimer = setTimeout(() => {
+    if (S.currentSection === 'reels' && S.tracking) {
+      const mc = document.getElementById('mockContent');
+      if (mc) mc.innerHTML = renderReels();
+    }
+  }, 4000);
+}
+
+function onFeedTap() {
+  if (!S.tracking) return;
+  if (S.sessionActive) endSession();
+  addLog('scrolling', 'Scrolling feed');
+}
+
+function onMessageTap() {
+  if (!S.tracking) return;
+  if (S.sessionActive) endSession();
+  addLog('messaging', 'Messaging');
+}
+
+function switchApp(app) {
+  S.currentApp = app;
+  S.currentSection = 'feed';
+  document.querySelectorAll('#appTabs .sm-tab').forEach(t => t.classList.toggle('active', t.dataset.app === app));
+  renderMockApp();
+}
+
+function switchSection(sec) {
+  if (S.currentSection === 'reels' && sec !== 'reels' && S.sessionActive) endSession();
+  S.currentSection = sec;
+  const app = apps[S.currentApp];
+  const idx = app.secs.indexOf(sec);
+  document.querySelectorAll('#mockApp .sm-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  const mc = document.getElementById('mockContent');
+  if (mc) {
+    if (sec === 'feed') { mc.innerHTML = renderFeed(); setActivity('scrolling', app.name, 85); }
+    else if (sec === 'reels') { mc.innerHTML = renderReels(); setActivity('shortform', app.name, 92); }
+    else if (sec === 'messages') { mc.innerHTML = renderMessages(); setActivity('messaging', app.name, 88); }
+  }
+}
+
+// ===== MOBILE TABS =====
+function switchMobileTab(tab) {
+  S.mobileTab = tab;
+  document.querySelectorAll('#mobileTabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  const lp = document.getElementById('leftPanel');
+  const cp = document.querySelector('.center-panel');
+  const rp = document.getElementById('rightPanel');
+  if (tab === 'home') { lp.style.display='block'; cp.style.display='flex'; rp.style.display='none'; }
+  else if (tab === 'social') { lp.style.display='none'; cp.style.display='flex'; rp.style.display='none'; }
+  else if (tab === 'detect') { lp.style.display='none'; cp.style.display='none'; rp.style.display='block'; rp.style.flex='1'; }
+}
+
+// ===== TRACKING ENGINE =====
+function startSession() {
+  S.sessionActive = true;
+  S.sessionSeconds = 0;
+  S.sessionCount++;
+  document.getElementById('sessionCard').style.display = 'block';
+  addLog('shortform', 'Short-form session started');
+  showToast('🎬', 'Short-form session started', `Watching on ${S.currentAppLabel}`);
+}
+
+function endSession() {
+  if (!S.sessionActive) return;
+  S.shortformTime += S.sessionSeconds;
+  S.sessionActive = false;
+  S.sessionSeconds = 0;
+  document.getElementById('sessionCard').style.display = 'none';
+  addLog('info', 'Session ended');
+}
+
+function tick() {
+  if (!S.tracking) return;
+  if (S.currentActivity === 'shortform') {
+    S.sessionSeconds++;
+    S.totalScreenTime++;
+    if (S.warningsOn && S.sessionSeconds === S.warnThreshold && Date.now() - S.lastWarn > 20000) showWarning();
+    if (S.blockingOn && S.sessionSeconds === S.blockThreshold && Date.now() - S.lastBlock > 20000) showBlock();
+  } else if (S.currentActivity === 'messaging') {
+    S.messagingTime++;
+    S.totalScreenTime++;
+    if (S.sessionActive) endSession();
+  } else if (S.currentActivity === 'scrolling') {
+    S.scrollingTime++;
+    S.totalScreenTime++;
+    if (S.sessionActive) endSession();
+  }
+}
+
+function showWarning() {
+  S.warningCount++;
+  S.lastWarn = Date.now();
+  const el = document.getElementById('warningOverlay');
+  document.getElementById('warningDuration').textContent = S.sessionSeconds >= 60 ? `${Math.floor(S.sessionSeconds/60)}m ${S.sessionSeconds%60}s` : `${S.sessionSeconds} seconds`;
+  el.classList.add('show');
+  let remaining = 100;
+  const fill = document.getElementById('warningTimerFill');
+  fill.style.width = '100%';
+  S.warningAutoTimer = setInterval(() => {
+    remaining -= 1;
+    fill.style.width = remaining + '%';
+    if (remaining <= 0) { clearInterval(S.warningAutoTimer); el.classList.remove('show'); }
+  }, 150);
+  showToast('⚠️', 'Warning!', `Short-form content: ${S.sessionSeconds}s`);
+}
+
+function showBlock() {
+  S.blockedCount++;
+  S.lastBlock = Date.now();
+  clearInterval(S.warningAutoTimer);
+  document.getElementById('warningOverlay').classList.remove('show');
+  const el = document.getElementById('blockOverlay');
+  document.getElementById('blockDuration').textContent = S.sessionSeconds >= 60 ? `${Math.floor(S.sessionSeconds/60)}m ${S.sessionSeconds%60}s` : `${S.sessionSeconds} seconds`;
+  document.getElementById('blockStats').textContent = `Sessions: ${S.sessionCount} | Blocked: ${S.blockedCount} | Total short-form: ${fmtTime(S.shortformTime)}`;
+  el.classList.add('show');
+  if (S.sessionActive) { S.shortformTime += S.sessionSeconds; S.sessionSeconds = 0; S.sessionActive = false; document.getElementById('sessionCard').style.display = 'none'; }
+  addLog('warning', 'Session BLOCKED');
+  showToast('🛑', 'Session Blocked', 'Content blocked to protect your attention');
+}
+
+function dismissWarning() {
+  document.getElementById('warningOverlay').classList.remove('show');
+  clearInterval(S.warningAutoTimer);
+}
+
+function dismissBlock() {
+  document.getElementById('blockOverlay').classList.remove('show');
+}
+
+function toggleTracking() {
+  S.tracking = !S.tracking;
+  const btn = document.getElementById('trackingBtn');
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  const badge = document.getElementById('liveBadge');
+  if (S.tracking) {
+    btn.textContent = 'Stop'; btn.style.background = 'var(--red)';
+    dot.classList.add('active'); text.textContent = 'Tracking active';
+    badge.style.display = 'inline-flex';
+    S.tickTimer = setInterval(tick, 1000);
+    S.uiTimer = setInterval(updateUI, 500);
+    addLog('info', 'Tracking started');
+  } else {
+    btn.textContent = 'Start'; btn.style.background = 'var(--green)';
+    dot.classList.remove('active'); text.textContent = 'Not tracking';
+    badge.style.display = 'none';
+    clearInterval(S.tickTimer); clearInterval(S.uiTimer);
+    if (S.sessionActive) endSession();
+    addLog('info', 'Tracking stopped');
+    S.currentActivity = 'none'; S.currentAppLabel = ''; S.confidence = 0;
+  }
+  renderMockApp();
+}
+
+// ===== UI UPDATE =====
+function updateUI() {
+  const names = { shortform:'Watching Short-Form', messaging:'Messaging', scrolling:'Scrolling Feed', none:'No activity' };
+  const colors = { shortform:'var(--shortform)', messaging:'var(--messaging)', scrolling:'var(--scrolling)', none:'var(--text3)' };
+  document.getElementById('activityDot').style.background = colors[S.currentActivity];
+  document.getElementById('activityLabel').textContent = names[S.currentActivity];
+  document.getElementById('activityApp').textContent = S.currentAppLabel ? `on ${S.currentAppLabel}` : '';
+  document.getElementById('chipShortform').classList.toggle('active', S.currentActivity === 'shortform');
+  document.getElementById('chipMessaging').classList.toggle('active', S.currentActivity === 'messaging');
+  document.getElementById('chipScrolling').classList.toggle('active', S.currentActivity === 'scrolling');
+  document.getElementById('detectStatus').textContent = S.tracking ? `Detected: ${S.currentAppLabel} — ${S.currentSection}` : 'Waiting to track...';
+  document.getElementById('confidenceVal').textContent = S.tracking ? `${S.confidence}%` : '0%';
+  document.getElementById('confidenceBar').style.width = S.tracking ? `${S.confidence}%` : '0%';
+  document.getElementById('sessionTimer').textContent = fmtCode(S.sessionSeconds);
+  document.getElementById('statShortform').textContent = fmtTime(S.shortformTime);
+  document.getElementById('statMessaging').textContent = fmtTime(S.messagingTime);
+  document.getElementById('statScrolling').textContent = fmtTime(S.scrollingTime);
+  document.getElementById('statWarnings').textContent = S.warningCount;
+  document.getElementById('totalSessions').textContent = S.sessionCount;
+  document.getElementById('totalBlocked').textContent = S.blockedCount;
+  document.getElementById('totalShortformTime').textContent = fmtTime(S.shortformTime);
+  document.getElementById('totalAllTime').textContent = fmtTime(S.totalScreenTime);
+  if (S.sessionActive) {
+    const p = Math.min(S.sessionSeconds / S.blockThreshold, 1);
+    const w = Math.min(S.sessionSeconds / S.warnThreshold, 1);
+    document.getElementById('sessionFill').style.width = `${p*100}%`;
+    document.getElementById('sessionFill').style.background = p>.8?'var(--red)':p>.5?'var(--orange)':'var(--shortform)';
+    document.getElementById('sessionProgress').textContent = `${fmtTime(S.sessionSeconds)} / ${fmtTime(S.blockThreshold)}`;
+    document.getElementById('warningFill').style.width = `${w*100}%`;
+    document.getElementById('warningAt').textContent = `Warning at ${fmtTime(S.warnThreshold)}`;
+  }
+  const mx = Math.max(S.shortformTime, S.messagingTime, S.scrollingTime, 1);
+  document.getElementById('chartShortform').style.width = `${(S.shortformTime/mx)*100}%`;
+  document.getElementById('chartMessaging').style.width = `${(S.messagingTime/mx)*100}%`;
+  document.getElementById('chartScrolling').style.width = `${(S.scrollingTime/mx)*100}%`;
+  document.getElementById('chartShortformVal').textContent = fmtTime(S.shortformTime);
+  document.getElementById('chartMessagingVal').textContent = fmtTime(S.messagingTime);
+  document.getElementById('chartScrollingVal').textContent = fmtTime(S.scrollingTime);
+}
+
+// ===== LOG =====
+function addLog(type, msg) {
+  const c = { shortform:'var(--shortform)', messaging:'var(--messaging)', scrolling:'var(--scrolling)', warning:'var(--orange)', info:'var(--text3)' };
+  const now = new Date();
+  const t = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  const log = document.getElementById('activityLog');
+  const e = document.createElement('div');
+  e.className = 'log-entry fade-in';
+  e.innerHTML = `<div class="log-dot" style="background:${c[type]}"></div><span class="log-time">${t}</span><span>${msg}</span>`;
+  if (log.querySelector('div[style]')) log.innerHTML = '';
+  log.insertBefore(e, log.firstChild);
+  if (log.children.length > 30) log.removeChild(log.lastChild);
+}
+
+// ===== SETTINGS =====
+function updateThresholds() {
+  S.warnThreshold = parseInt(document.getElementById('warnSlider').value);
+  S.blockThreshold = parseInt(document.getElementById('blockSlider').value);
+  document.getElementById('warnVal').textContent = fmtTime(S.warnThreshold);
+  document.getElementById('blockVal').textContent = fmtTime(S.blockThreshold);
+}
+function toggleBlocking() { S.blockingOn = !S.blockingOn; document.getElementById('blockingToggle').classList.toggle('on', S.blockingOn); }
+function toggleWarnings() { S.warningsOn = !S.warningsOn; document.getElementById('warningToggle').classList.toggle('on', S.warningsOn); }
+
+// ===== UTILS =====
+function fmtTime(s) { return s < 60 ? `${Math.floor(s)}s` : `${Math.floor(s/60)}m ${Math.floor(s%60)>0?Math.floor(s%60)+'s':''}`; }
+function fmtCode(s) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${Math.floor(s%60).toString().padStart(2,'0')}`; }
+function showToast(icon, title, text) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastText').innerHTML = `<strong>${title}</strong>${text}`;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===== INIT =====
+let tipIdx = 0;
+setInterval(() => {
+  tipIdx = (tipIdx + 1) % tips.length;
+  const el = document.getElementById('tipText');
+  if (el) { el.style.opacity = '0'; setTimeout(() => { el.textContent = tips[tipIdx]; el.style.opacity = '1'; }, 300); }
+}, 10000);
+updateThresholds();
+</script>
+</body>
+</html>
